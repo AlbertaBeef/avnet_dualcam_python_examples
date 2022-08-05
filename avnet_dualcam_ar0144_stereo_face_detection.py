@@ -102,14 +102,20 @@ densebox_dpu = vart.Runner.create_runner(densebox_subgraphs[0],"run")
 dpu_face_detector = FaceDetect(densebox_dpu,detThreshold,nmsThreshold)
 dpu_face_detector.start()
 
+bLandmarksAvailable = False
+bUseLandmarks = False
+nLandmarkId = 2
+
 # Initialize Vitis-AI/DPU based face landmark
 landmark_xmodel = "/usr/share/vitis_ai_library/models/face_landmark/face_landmark.xmodel"
 landmark_graph = xir.Graph.deserialize(landmark_xmodel)
 landmark_subgraphs = get_child_subgraph_dpu(landmark_graph)
-assert len(landmark_subgraphs) == 1 # only one DPU kernel
-landmark_dpu = vart.Runner.create_runner(landmark_subgraphs[0],"run")
-dpu_face_landmark = FaceLandmark(landmark_dpu)
-dpu_face_landmark.start()
+if len(landmark_subgraphs) == 1: # only one DPU kernel
+  bLandmarksAvailable = True
+if bLandmarksAvailable == True:
+  landmark_dpu = vart.Runner.create_runner(landmark_subgraphs[0],"run")
+  dpu_face_landmark = FaceLandmark(landmark_dpu)
+  dpu_face_landmark.start()
 
 # init the real-time FPS display
 rt_fps_count = 0;
@@ -152,9 +158,6 @@ def cornerRect( img, bbox, l=20, t=5, rt=1, colorR=(255,0,255), colorC=(0,255,0)
 	cv2.line(img, (x2,y2), (x2,y2-l), colorC, t)
 
 	return img
-
-bUseLandmarks = False
-nLandmarkId = 2
 
 def initVideoWriter(output_select):
   pipeline_out = ""
@@ -208,23 +211,24 @@ while True:
 			left_cy = (top+bottom)/2
 
 			# get face landmarks
-			startX = int(left)
-			startY = int(top)
-			endX   = int(right)
-			endY   = int(bottom)      
-			face = left_frame[startY:endY, startX:endX]
-			landmarks = dpu_face_landmark.process(face)
-			if bUseLandmarks == True:  
-				for i in range(5):
-					x = startX + int(landmarks[i,0] * (endX-startX))
-					y = startY + int(landmarks[i,1] * (endY-startY))
-					cv2.circle( frame2, (x,y), 3, (255,255,255), 2)
-				x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
-				y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
-				cv2.circle( frame2, (x,y), 4, (255,255,255), -1)
-			# get left coordinate (keep float, for full precision)  
-			left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
-			left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
+			if bLandmarksAvailable == True:
+				startX = int(left)
+				startY = int(top)
+				endX   = int(right)
+				endY   = int(bottom)      
+				face = left_frame[startY:endY, startX:endX]
+				landmarks = dpu_face_landmark.process(face)
+				if bUseLandmarks == True:  
+					for i in range(5):
+						x = startX + int(landmarks[i,0] * (endX-startX))
+						y = startY + int(landmarks[i,1] * (endY-startY))
+						cv2.circle( frame2, (x,y), 3, (255,255,255), 2)
+					x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
+					y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
+					cv2.circle( frame2, (x,y), 4, (255,255,255), -1)
+					# get left coordinate (keep float, for full precision)  
+					left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
+					left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
 
 		# loop over the right faces
 		for i,(left,top,right,bottom) in enumerate(right_faces): 
@@ -240,43 +244,47 @@ while True:
 			right_cy = (top+bottom)/2
 
 			# get face landmarks
-			startX = int(left)
-			startY = int(top)
-			endX   = int(right)
-			endY   = int(bottom)      
-			face = right_frame[startY:endY, startX:endX]
-			landmarks = dpu_face_landmark.process(face)
-			if bUseLandmarks == True:  
-				for i in range(5):
-					x = startX + int(landmarks[i,0] * (endX-startX))
-					y = startY + int(landmarks[i,1] * (endY-startY))
-					cv2.circle( frame2, (x,y), 3, (255,255,0), 2)  
-				x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
-				y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
-				cv2.circle( frame2, (x,y), 4, (255,255,0), -1)  
-			# get right coordinate (keep float, for full precision)  
-			right_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
-			right_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
+			if bLandmarksAvailable == True:
+				startX = int(left)
+				startY = int(top)
+				endX   = int(right)
+				endY   = int(bottom)      
+				face = right_frame[startY:endY, startX:endX]
+				landmarks = dpu_face_landmark.process(face)
+				if bUseLandmarks == True:  
+					for i in range(5):
+						x = startX + int(landmarks[i,0] * (endX-startX))
+						y = startY + int(landmarks[i,1] * (endY-startY))
+						cv2.circle( frame2, (x,y), 3, (255,255,0), 2)  
+					x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
+					y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
+					cv2.circle( frame2, (x,y), 4, (255,255,0), -1)  
+				# get right coordinate (keep float, for full precision)  
+				right_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
+				right_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
 
 		delta_cx = abs(left_cx - right_cx)
 		delta_cy = abs(right_cy - left_cy)
 		message1 = "delta_cx="+str(int(delta_cx))
 
-		delta_lx = abs(left_lx - right_lx)
-		delta_ly = abs(right_ly - left_ly)
-		message2 = "delta_lx="+str(int(delta_lx))
+		if bLandmarksAvailable == True:
+			delta_lx = abs(left_lx - right_lx)
+			delta_ly = abs(right_ly - left_ly)
+			message2 = "delta_lx="+str(int(delta_lx))
 
 		if bUseLandmarks == False:  
 			delta_x = delta_cx
 			delta_y = delta_cy
 			cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,0),2)
-			cv2.putText(frame2,message2,(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
+			if bLandmarksAvailable == True:
+				cv2.putText(frame2,message2,(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
 
-		if bUseLandmarks == True:  
-			delta_x = delta_lx
-			delta_y = delta_ly
-			cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
-			cv2.putText(frame2,message2,(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,0),2)
+		if bUseLandmarks == True:
+			if bLandmarksAvailable == True:  
+				delta_x = delta_lx
+				delta_y = delta_ly
+				cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
+				cv2.putText(frame2,message2,(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,0),2)
 
 		# distance = (baseline * focallength) / disparity
 		#    ref : https://learnopencv.com/introduction-to-epipolar-geometry-and-stereo-vision/
@@ -326,8 +334,9 @@ while True:
 	key = cv2.waitKey(1) & 0xFF
 
 	if key == ord("d"):
-		bUseLandmarks = not bUseLandmarks
-		print("bUseLandmarks = ",bUseLandmarks);
+		if bLandmarksAvailable == True:  
+			bUseLandmarks = not bUseLandmarks
+			print("bUseLandmarks = ",bUseLandmarks);
 
 	if key == ord("l"):
 		nLandmarkId = nLandmarkId + 1

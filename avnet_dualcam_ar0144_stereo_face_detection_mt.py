@@ -33,8 +33,6 @@ import argparse
 import sys
 import queue
 
-from imutils.video import FPS
-
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 from avnet_dualcam.dualcam import DualCam
@@ -48,6 +46,7 @@ global bQuit
 global width
 global height
 
+global bLandmarksAvailable
 global bUseLandmarks
 global nLandmarkId
 
@@ -105,9 +104,6 @@ def taskCapture(width,height,queueLeft,queueRight):
 
     #print("[INFO] taskCapture : starting thread ...")
 
-    # Start the FPS counter
-    fpsIn = FPS().start()
-
     # Initialize the capture pipeline
     print("[INFO] Initializing the capture pipeline ...")
     dualcam = DualCam('ar0144_dual',width,height)
@@ -116,17 +112,9 @@ def taskCapture(width,height,queueLeft,queueRight):
         # Capture image from camera
         left_frame,right_frame = dualcam.capture_dual()
 
-        # Update the FPS counter
-        fpsIn.update()
-
         # Push captured image to input queue
         queueLeft.put(left_frame)
         queueRight.put(right_frame)
-
-    # Stop the timer and display FPS information
-    fpsIn.stop()
-    print("[INFO] taskCapture : elapsed time: {:.2f}".format(fpsIn.elapsed()))
-    print("[INFO] taskCapture : elapsed FPS: {:.2f}".format(fpsIn.fps()))
 
     #print("[INFO] taskCapture : exiting thread ...")
 
@@ -139,6 +127,7 @@ def taskFaceDet(side,worker,densebox_dpu,detThreshold,nmsThreshold,queueImg,queu
     global width
     global height
 
+    global bLandmarksAvailable
     global bUseLandmarks
     global nLandmarkId
 
@@ -171,6 +160,7 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
     global width
     global height
 
+    global bLandmarksAvailable
     global bUseLandmarks
     global nLandmarkId
 
@@ -218,13 +208,14 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
                 left_cy = (top+bottom)/2
 
                 # get face landmarks
-                startX = int(left)
-                startY = int(top)
-                endX   = int(right)
-                endY   = int(bottom)      
-                face = left_frame[startY:endY, startX:endX]
-                landmarks = dpu_face_landmark.process(face)
-                if bUseLandmarks == True:  
+                if bLandmarksAvailable == True:
+                  startX = int(left)
+                  startY = int(top)
+                  endX   = int(right)
+                  endY   = int(bottom)      
+                  face = left_frame[startY:endY, startX:endX]
+                  landmarks = dpu_face_landmark.process(face)
+                  if bUseLandmarks == True:  
                     for i in range(5):
                         x = startX + int(landmarks[i,0] * (endX-startX))
                         y = startY + int(landmarks[i,1] * (endY-startY))
@@ -232,9 +223,9 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
                     x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
                     y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
                     cv2.circle( frame2, (x,y), 4, (255,255,255), -1)
-                # get left coordinate (keep float, for full precision)  
-                left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
-                left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
+                  # get left coordinate (keep float, for full precision)  
+                  left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
+                  left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
 
             # loop over the right faces
             for i,(left,top,right,bottom) in enumerate(right_faces): 
@@ -250,13 +241,14 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
                 right_cy = (top+bottom)/2
 
                 # get face landmarks
-                startX = int(left)
-                startY = int(top)
-                endX   = int(right)
-                endY   = int(bottom)      
-                face = right_frame[startY:endY, startX:endX]
-                landmarks = dpu_face_landmark.process(face)
-                if bUseLandmarks == True:  
+                if bLandmarksAvailable == True:
+                  startX = int(left)
+                  startY = int(top)
+                  endX   = int(right)
+                  endY   = int(bottom)      
+                  face = right_frame[startY:endY, startX:endX]
+                  landmarks = dpu_face_landmark.process(face)
+                  if bUseLandmarks == True:  
                     for i in range(5):
                         x = startX + int(landmarks[i,0] * (endX-startX))
                         y = startY + int(landmarks[i,1] * (endY-startY))
@@ -264,25 +256,28 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
                     x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
                     y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
                     cv2.circle( frame2, (x,y), 4, (255,255,0), -1)  
-                # get right coordinate (keep float, for full precision)  
-                right_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
-                right_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
+                  # get right coordinate (keep float, for full precision)  
+                  right_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
+                  right_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
 
             delta_cx = abs(left_cx - right_cx)
             delta_cy = abs(right_cy - left_cy)
             message1 = "delta_cx="+str(int(delta_cx))
 
-            delta_lx = abs(left_lx - right_lx)
-            delta_ly = abs(right_ly - left_ly)
-            message2 = "delta_lx="+str(int(delta_lx))
+            if bLandmarksAvailable == True:
+              delta_lx = abs(left_lx - right_lx)
+              delta_ly = abs(right_ly - left_ly)
+              message2 = "delta_lx="+str(int(delta_lx))
 
             if bUseLandmarks == False:  
-                delta_x = delta_cx
-                delta_y = delta_cy
-                cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,0),2)
+              delta_x = delta_cx
+              delta_y = delta_cy
+              cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,0),2)
+              if bLandmarksAvailable == True:
                 cv2.putText(frame2,message2,(20,40),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
 
             if bUseLandmarks == True:  
+              if bLandmarksAvailable == True:
                 delta_x = delta_lx
                 delta_y = delta_ly
                 cv2.putText(frame2,message1,(20,20),cv2.FONT_HERSHEY_SIMPLEX,0.75,(255,255,255),2)
@@ -331,11 +326,6 @@ def taskWorker(worker,landmark_dpu,queueCapLeft,queueCapRight,queueLeftImg,queue
     #              make sure input queue is not empty 
     queueIn.put(frame)
 
-    # Stop the timer and display FPS information
-    fpsIn.stop()
-    print("[INFO] taskCapture : elapsed time: {:.2f}".format(fpsIn.elapsed()))
-    print("[INFO] taskCapture : elapsed FPS: {:.2f}".format(fpsIn.fps()))
-
     #print("[INFO] taskWorker[",worker,"] : exiting thread ...")
 
 def taskDisplay(queueOut):
@@ -362,9 +352,6 @@ def taskDisplay(queueOut):
     rt_fps_message = "FPS: {0:.2f}".format(rt_fps)
     rt_fps_x = 10
     rt_fps_y = height-10
-
-    # Start the FPS counter
-    fpsOut = FPS().start()
 
     #output_select = 1
     out = []	
@@ -393,9 +380,6 @@ def taskDisplay(queueOut):
         if output_select > 0 and out.isOpened():
             out.write(display_frame)
 
-        # Update the FPS counter
-        fpsOut.update()
-
         if key == ord("d"):
             bUseLandmarks = not bUseLandmarks
             print("bUseLandmarks = ",bUseLandmarks);
@@ -423,11 +407,6 @@ def taskDisplay(queueOut):
     # Trigger all threads to stop
     bQuit = True
 
-    # Stop the timer and display FPS information
-    fpsOut.stop()
-    print("[INFO] taskDisplay : elapsed time: {:.2f}".format(fpsOut.elapsed()))
-    print("[INFO] taskDisplay : elapsed FPS: {:.2f}".format(fpsOut.fps()))
-
     # Cleanup
     cv2.destroyAllWindows()
 
@@ -443,8 +422,10 @@ def main(argv):
     global width
     global height
 
+    global bLandmarksAvailable
     global bUseLandmarks
     global nLandmarkId
+    bLandmarksAvailable = False
     bUseLandmarks = False
     nLandmarkId = 2
 
@@ -518,17 +499,18 @@ def main(argv):
     all_densebox_left_dpu_runners = [];
     all_densebox_right_dpu_runners = [];
     for i in range(int(threads)):
-        all_densebox_left_dpu_runners.append(vart.Runner.create_runner(densebox_subgraphs[0], "run"));
-        all_densebox_right_dpu_runners.append(vart.Runner.create_runner(densebox_subgraphs[0], "run"));
+      all_densebox_left_dpu_runners.append(vart.Runner.create_runner(densebox_subgraphs[0], "run"));
+      all_densebox_right_dpu_runners.append(vart.Runner.create_runner(densebox_subgraphs[0], "run"));
 
     # Initialize Vitis-AI/DPU based face landmark
     landmark_xmodel = "/usr/share/vitis_ai_library/models/face_landmark/face_landmark.xmodel"
     landmark_graph = xir.Graph.deserialize(landmark_xmodel)
     landmark_subgraphs = get_child_subgraph_dpu(landmark_graph)
-    assert len(landmark_subgraphs) == 1 # only one DPU kernel
+    if len(landmark_subgraphs) == 1: # only one DPU kernel
+      bLandmarksAvailable = True
     all_landmark_dpu_runners = [];
     for i in range(int(threads)):
-        all_landmark_dpu_runners.append(vart.Runner.create_runner(landmark_subgraphs[0], "run"));
+      all_landmark_dpu_runners.append(vart.Runner.create_runner(landmark_subgraphs[0], "run"));
 
     # Init synchronous queues for inter-thread communication
     queueCapLeft = queue.Queue(maxsize=2)
