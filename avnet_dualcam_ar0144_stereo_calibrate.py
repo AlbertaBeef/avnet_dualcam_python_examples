@@ -239,9 +239,8 @@ class Main:
 
         show((60, int(height / 2 - 40)), "Calibration failed, ")
         show((60, int(height / 2)), "Device might be held upside down!")
-        show((60, int(height / 2)), "Or ports connected might be inverted!")
-        show((60, int(height / 2 + 40)), "Fix orientation")
-        show((60, int(height / 2 + 80)), "and start again")
+        show((60, int(height / 2 + 40)), "Or ports connected might be inverted!")
+        show((60, int(height / 2 + 80)), "Fix orientation and start again")
 
         cv2.imshow("left + right", info_frame)
         cv2.waitKey(0)

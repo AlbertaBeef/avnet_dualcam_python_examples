@@ -94,6 +94,13 @@ class DualCam():
     self.dev_media = dev_media
     self.ap1302_i2c_desc = ap1302_i2c_desc
 
+    if self.ap1302_i2c_desc == 'ap1302.0-003c':
+      # SYZYGY dualcam : sensors placed left-right on board
+      print("\n\r[DualCam] Detected SYZYGY dualcam (sensors placed left-right on board)")
+    else:
+      # 96Boards dualcam : sensors places right-left on board
+      print("\n\r[DualCam] Detected 96Boards dualcam (sensors placed right-left on board)")
+
     print("\n\r[DualCam] Initializing capture pipeline for ",self.cap_config,self.cap_width,self.cap_height)
             
     #cmd = "media-ctl -d "+dev_media+" -V \"'ap1302.0-003c':2 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
@@ -137,6 +144,7 @@ class DualCam():
     #  cmd = "v4l2-ctl --set-ctrl 3d_path=1 -d "+dev_video
     #  print(cmd)
     #  os.system(cmd)
+    # causes capture to hange ... cannot use :(
 
     if cap_config == 'ar1335_single':
       print("\n\r[DualCam] Configuring AP1302 for no horizontal/vertical flip")
@@ -184,10 +192,14 @@ class DualCam():
 
     _, frame = self.cap.retrieve()
     
-    #left  = frame[:,1:(self.cap_width)+1,:]
-    #right = frame[:,(self.cap_width):(self.cap_width*2)+1,:]    
-    right = frame[:,1:(self.cap_width)+1,:]
-    left  = frame[:,(self.cap_width):(self.cap_width*2)+1,:]    
+    if self.ap1302_i2c_desc == 'ap1302.0-003c':
+      # SYZYGY dualcam : sensors placed left-right on board
+      left  = frame[:,1:(self.cap_width)+1,:]
+      right = frame[:,(self.cap_width):(self.cap_width*2)+1,:]
+    else:
+      # 96Boards dualcam : sensors places right-left on board
+      right = frame[:,1:(self.cap_width)+1,:]
+      left  = frame[:,(self.cap_width):(self.cap_width*2)+1,:]    
     
     return left,right    
   
