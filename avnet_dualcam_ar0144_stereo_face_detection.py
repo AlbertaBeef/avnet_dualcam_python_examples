@@ -53,10 +53,12 @@ ap.add_argument("-d", "--detthreshold", required=False,
 	help = "face detector softmax threshold (default = 0.55)")
 ap.add_argument("-n", "--nmsthreshold", required=False,
 	help = "face detector NMS threshold (default = 0.35)")
-ap.add_argument("-f", "--fps", required=False,
-	help = "fps overlay (default = 0)")
+ap.add_argument("-f", "--fps", required=False, default=False, action="store_true",
+	help = "fps overlay (default = off")
 ap.add_argument("-o", "--output", required=False,
 	help = "output display (0==imshow(default) | 1==kmssink)")
+ap.add_argument("-b", "--brightness", required=False,
+	help = "brightness in 0-65535 range (default = 256)")
 args = vars(ap.parse_args())
 
 if not args.get("width",False):
@@ -82,9 +84,9 @@ else:
 print('[INFO] face detector - NMS threshold = ',nmsThreshold)
 
 if not args.get("fps",False):
-  fps_overlay = 0 
+  fps_overlay = False 
 else:
-  fps_overlay = int(args["fps"])
+  fps_overlay = True
 print('[INFO] fps overlay =  ',fps_overlay)
 
 if not args.get("output",False):
@@ -92,6 +94,12 @@ if not args.get("output",False):
 else:
   output_select = int(args["output"])
 print('[INFO] output select =  ',output_select)
+
+if not args.get("brightness",False):
+  brightness = 256
+else:
+  brightness = int(args["brightness"])
+print('[INFO] brightness = ',brightness)
 
 # Initialize Vitis-AI/DPU based face detector
 densebox_xmodel = "/usr/share/vitis_ai_library/models/densebox_640_360/densebox_640_360.xmodel"
@@ -129,6 +137,8 @@ rt_fps_y = height-10
 # Initialize the capture pipeline
 print("[INFO] Initializing the capture pipeline ...")
 dualcam = DualCam('ar0144_dual',width,height)
+dualcam.set_brightness(brightness)  
+
 
 # inspired from cvzone.Utils.py
 def cornerRect( img, bbox, l=20, t=5, rt=1, colorR=(255,0,255), colorC=(0,255,0)):
@@ -320,6 +330,7 @@ while True:
 	else:
 		display_frame = cv2.hconcat([frame1, frame2])
 
+	# Display status messages
 	status = ""
 	if fps_overlay == True and rt_fps_valid == True:
 		status = status + " " + rt_fps_message
@@ -344,9 +355,17 @@ while True:
 			nLandmarkId = 0
 		print("nLandmarkId = ",nLandmarkId);
 
-	# if the `q` key was pressed, break from the loop
-	if key == ord("q"):
+	# if the ESC or 'q' key was pressed, break from the loop
+	if key == 27 or key == ord("q"):
 		break
+  
+	# Use 'b' and 'B" keys to adjust brightness
+	if key == ord("B"):
+		brightness = min(brightness + 256,65535)
+		dualcam.set_brightness(brightness)  
+	if key == ord("b"):
+		brightness = max(brightness - 256,256)
+		dualcam.set_brightness(brightness)  
  
  	# Update the real-time FPS counter
 	rt_fps_count = rt_fps_count + 1

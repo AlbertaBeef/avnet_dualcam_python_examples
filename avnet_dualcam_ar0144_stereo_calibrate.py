@@ -258,7 +258,11 @@ class Main:
         recent_right = None
 
         while not finished:
-            current_left,current_right = self.dualcam.capture_dual()
+            if self.args.swapLR == True:
+                current_right,current_left = self.dualcam.capture_dual()
+            else:
+                current_left,current_right = self.dualcam.capture_dual()
+              
             current_left = cv2.cvtColor(current_left,cv2.COLOR_BGR2GRAY)
             current_right = cv2.cvtColor(current_right,cv2.COLOR_BGR2GRAY)
 

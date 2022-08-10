@@ -173,6 +173,13 @@ class DualCam():
 
     print("\n\r")
 
+  def set_brightness(self,brightness):
+    print("\n\r[DualCam] Setting brightness to ",brightness)
+    cmd = "v4l2-ctl --set-ctrl brightness="+str(brightness)+" -d "+self.dev_video
+    print(cmd)
+    os.system(cmd)
+    
+    
   def capture(self):
     
     if not (self.cap.grab()):
