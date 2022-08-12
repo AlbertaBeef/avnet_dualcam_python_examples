@@ -97,7 +97,7 @@ while(True):
 	cv2.putText(anaglyph, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
 	# Display output
-	cv2.imshow('u96v2_sbc_dualcam_ar0144 - anaglyph',anaglyph)
+	cv2.imshow('avnet_dualcam_ar0144 - anaglyph',anaglyph)
 
 	key = cv2.waitKey(1) & 0xFF
 
