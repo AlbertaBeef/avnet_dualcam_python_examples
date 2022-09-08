@@ -50,6 +50,11 @@ def get_ap1302_i2c_desc(dev_media):
             ap1302_i2c_desc = 'ap1302.'+i2c_bus+'-003c'            
             return ap1302_i2c_desc
 
+def get_platform_name():
+    proc = subprocess.run(['hostname'], capture_output=True, encoding='utf8')
+    for line in proc.stdout.splitlines():
+        platform_name = re.search('(.+?)-sbc-(.+?)',line).group(1)
+        return platform_name
 
 class DualCam():
 	  
@@ -94,7 +99,9 @@ class DualCam():
     self.dev_media = dev_media
     self.ap1302_i2c_desc = ap1302_i2c_desc
 
-    if self.ap1302_i2c_desc == 'ap1302.0-003c':
+    self.platform_name = get_platform_name()
+    print("\n\r[DualCam] hostname = ",self.platform_name) 
+    if self.platform_name == 'zub1cg':
       # SYZYGY dualcam : sensors placed left-right on board
       print("\n\r[DualCam] Detected SYZYGY dualcam (sensors placed left-right on board)")
     else:
@@ -199,7 +206,7 @@ class DualCam():
 
     _, frame = self.cap.retrieve()
     
-    if self.ap1302_i2c_desc == 'ap1302.0-003c':
+    if self.platform_name == 'zub1cg':
       # SYZYGY dualcam : sensors placed left-right on board
       left  = frame[:,1:(self.cap_width)+1,:]
       right = frame[:,(self.cap_width):(self.cap_width*2)+1,:]
