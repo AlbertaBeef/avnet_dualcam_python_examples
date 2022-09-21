@@ -341,7 +341,9 @@ def taskDisplay(queueOut):
     global width
     global height
 
-    global img_kiss
+    global bLandmarksAvailable
+    global bUseLandmarks
+    global nLandmarkId
 
     global fps_overlay
     

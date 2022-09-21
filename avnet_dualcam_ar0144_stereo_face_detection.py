@@ -236,9 +236,9 @@ while True:
 					x = startX + int(landmarks[nLandmarkId,0] * (endX-startX))
 					y = startY + int(landmarks[nLandmarkId,1] * (endY-startY))
 					cv2.circle( frame2, (x,y), 4, (255,255,255), -1)
-					# get left coordinate (keep float, for full precision)  
-					left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
-					left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
+				# get left coordinate (keep float, for full precision)  
+				left_lx = left   + (landmarks[nLandmarkId,0] * (right-left))
+				left_ly = bottom + (landmarks[nLandmarkId,1] * (bottom-top))  
 
 		# loop over the right faces
 		for i,(left,top,right,bottom) in enumerate(right_faces): 
