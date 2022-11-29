@@ -37,6 +37,8 @@ ap.add_argument("-f", "--fps", required=False, default=False, action="store_true
 	help = "fps overlay (default = off")
 ap.add_argument("-b", "--brightness", required=False,
 	help = "brightness in 0-65535 range (default = 256)")
+ap.add_argument("-e", "--exposure", required=False,
+	help = "exposure in 1-12 range (default = 12)")
 args = vars(ap.parse_args())
 
 if not args.get("width",False):
@@ -61,6 +63,12 @@ else:
   brightness = int(args["brightness"])
 print('[INFO] brightness = ',brightness)
 
+if not args.get("exposure",False):
+  exposure = 12
+else:
+  exposure = int(args["exposure"])
+print('[INFO] exposure = ',exposure)
+
 # init the real-time FPS display
 rt_fps_count = 0;
 rt_fps_time = cv2.getTickCount()
@@ -72,8 +80,9 @@ rt_fps_y = height-10
 
 # Initialize the capture pipeline
 print("[INFO] Initializing the capture pipeline ...")
-dualcam = DualCam('ar0144_dual',width,height)
+dualcam = DualCam('ar0830_dual',width,height)
 dualcam.set_brightness(brightness)  
+dualcam.set_exposure(exposure) 
 
 while(True):
 	# Update the real-time FPS counter
@@ -93,7 +102,7 @@ while(True):
 	cv2.putText(output, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
 	# Display output
-	cv2.imshow('avnet_dualcam - ar0144_dual - dual passthrough',output)
+	cv2.imshow('avnet_dualcam - ar0830_dual - dual passthrough',output)
 
 	key = cv2.waitKey(1) & 0xFF
 
@@ -101,13 +110,21 @@ while(True):
 	if key == 27 or key == ord("q"):
 		break
    
-	# Use 'b' and 'B" keys to adjust brightness
+	# Use 'b' and 'B' keys to adjust brightness
 	if key == ord("B"):
 		brightness = min(brightness + 256,65535)
 		dualcam.set_brightness(brightness)  
 	if key == ord("b"):
 		brightness = max(brightness - 256,256)
 		dualcam.set_brightness(brightness)  
+
+	# Use 'e' and 'E' keys to adjust exposure
+	if key == ord("E"):
+		exposure = min(exposure + 1,12)
+		dualcam.set_exposure(exposure)  
+	if key == ord("e"):
+		exposure = max(exposure - 1,0)
+		dualcam.set_exposure(exposure)  
 
  	# Update the real-time FPS counter
 	rt_fps_count = rt_fps_count + 1

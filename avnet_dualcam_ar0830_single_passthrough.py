@@ -25,7 +25,7 @@ sys.path.append(os.path.abspath('./'))
 from avnet_dualcam.dualcam import DualCam
 
 # USAGE
-# python dual_passthrough.py [--width 640] [--height 480]
+# python passthrough.py [--width 640] [--height 480]
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -37,6 +37,8 @@ ap.add_argument("-f", "--fps", required=False, default=False, action="store_true
 	help = "fps overlay (default = off")
 ap.add_argument("-b", "--brightness", required=False,
 	help = "brightness in 0-65535 range (default = 256)")
+ap.add_argument("-e", "--exposure", required=False,
+	help = "exposure in 1-12 range (default = 12)")
 args = vars(ap.parse_args())
 
 if not args.get("width",False):
@@ -47,7 +49,7 @@ if not args.get("height",False):
   height = 480
 else:
   height = int(args["height"])
-print('[INFO] input resolution = ',width,'X',height)
+print('[INFO] input resolution = ',width,'x',height)
 
 if not args.get("fps",False):
   fps_overlay = False 
@@ -61,6 +63,12 @@ else:
   brightness = int(args["brightness"])
 print('[INFO] brightness = ',brightness)
 
+if not args.get("exposure",False):
+  exposure = 12
+else:
+  exposure = int(args["exposure"])
+print('[INFO] exposure = ',exposure)
+
 # init the real-time FPS display
 rt_fps_count = 0;
 rt_fps_time = cv2.getTickCount()
@@ -72,8 +80,9 @@ rt_fps_y = height-10
 
 # Initialize the capture pipeline
 print("[INFO] Initializing the capture pipeline ...")
-dualcam = DualCam('ar0144_dual',width,height)
+dualcam = DualCam('ar0830_single',width,height)
 dualcam.set_brightness(brightness)  
+dualcam.set_exposure(exposure) 
 
 while(True):
 	# Update the real-time FPS counter
@@ -81,20 +90,20 @@ while(True):
 		rt_fps_time = cv2.getTickCount()
 
 	# Capture input
-	left,right = dualcam.capture_dual()
+	frame = dualcam.capture()
 
-	# dual passthrough
-	output = cv2.hconcat([left,right])
+	# Insert your processing here ...
+	#frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
 	# Display status messages
 	status = ""
 	if fps_overlay == True and rt_fps_valid == True:
 		status = status + " " + rt_fps_message
-	cv2.putText(output, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
+	cv2.putText(frame, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
 	# Display output
-	cv2.imshow('avnet_dualcam - ar0144_dual - dual passthrough',output)
-
+	cv2.imshow('avnet_dualcam - ar0830_single - passthrough',frame)
+  
 	key = cv2.waitKey(1) & 0xFF
 
 	# if the ESC or 'q' key was pressed, break from the loop
@@ -108,6 +117,14 @@ while(True):
 	if key == ord("b"):
 		brightness = max(brightness - 256,256)
 		dualcam.set_brightness(brightness)  
+
+	# Use 'e' and 'E' keys to adjust exposure
+	if key == ord("E"):
+		exposure = min(exposure + 1,12)
+		dualcam.set_exposure(exposure)  
+	if key == ord("e"):
+		exposure = max(exposure - 1,0)
+		dualcam.set_exposure(exposure)  
 
  	# Update the real-time FPS counter
 	rt_fps_count = rt_fps_count + 1

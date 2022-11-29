@@ -72,7 +72,7 @@ rt_fps_y = height-10
 
 # Initialize the capture pipeline
 print("[INFO] Initializing the capture pipeline ...")
-dualcam = DualCam('ar0144_dual',width,height)
+dualcam = DualCam('ar1335_dual',width,height)
 dualcam.set_brightness(brightness)  
 
 while(True):
@@ -93,7 +93,7 @@ while(True):
 	cv2.putText(output, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
 	# Display output
-	cv2.imshow('avnet_dualcam - ar0144_dual - dual passthrough',output)
+	cv2.imshow('avnet_dualcam - ar1335_dual - dual passthrough',output)
 
 	key = cv2.waitKey(1) & 0xFF
 

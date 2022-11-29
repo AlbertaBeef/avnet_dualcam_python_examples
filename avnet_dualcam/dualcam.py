@@ -70,7 +70,7 @@ class DualCam():
     self.output_resolution = 'WxH'
 
     if cap_config == 'ar0144_dual':
-      self.input_resolution = '2560x800'
+      self.input_resolution = '2560x800' # 2 x 1280x800
       self.output_width = self.cap_width*2
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
@@ -84,8 +84,23 @@ class DualCam():
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
+    elif cap_config == 'ar1335_dual':
+      self.input_resolution = '3840x1080' # 2 x 1920x1080
+      self.output_width = self.cap_width*2
+      self.output_height = self.cap_height
+      self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
+    elif cap_config == 'ar0830_single':
+      self.input_resolution = '3840x2160'
+      self.output_width = self.cap_width
+      self.output_height = self.cap_height
+      self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
+    elif cap_config == 'ar0830_dual':
+      self.input_resolution = '3840x1080' # 2 x 1920x1080
+      self.output_width = self.cap_width*2
+      self.output_height = self.cap_height
+      self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
     else:
-      print("[DualCam] Invalid cap_config = ",cap_config," !  (must be ar0144_dual|ar0144_single|ar1335_single)")
+      print("[DualCam] Invalid cap_config = ",cap_config," !  (must be ar0144_dual|ar0144_single|ar1335_single|ar1335_dual|ar0830_single|ar0830_dual)")
       return None
 
     print("\n\r[DualCam] Looking for devices corresponding to AP1302")
@@ -183,6 +198,12 @@ class DualCam():
   def set_brightness(self,brightness):
     print("\n\r[DualCam] Setting brightness to ",brightness)
     cmd = "v4l2-ctl --set-ctrl brightness="+str(brightness)+" -d "+self.dev_video
+    print(cmd)
+    os.system(cmd)
+    
+  def set_exposure(self,exposure):
+    print("\n\r[DualCam] Setting exposure to ",exposure)
+    cmd = "v4l2-ctl --set-ctrl exposure="+str(exposure)+" -d "+self.dev_video
     print(cmd)
     os.system(cmd)
     
