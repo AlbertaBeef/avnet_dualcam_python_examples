@@ -1,5 +1,5 @@
 '''
-Copyright 2021 Avnet Inc.
+Copyright 2023 Avnet Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,10 +25,14 @@ sys.path.append(os.path.abspath('./'))
 from avnet_dualcam.dualcam import DualCam
 
 # USAGE
-# python anaglyph.py [--width 640] [--height 480]
+# python3 avnet_dualcam_anaglyph.py [--sensor ar0144] [--mode dual] [--width 640] [--height 480]
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
+ap.add_argument("-S", "--sensor", required=False,
+	help = "image sensor (ar0144|ar1335|ar0830, default = ar0144)")
+ap.add_argument("-M", "--mode", required=False,
+	help = "mode (primary|secondary|dual, default = dual)")
 ap.add_argument("-W", "--width", required=False,
 	help = "input width (default = 640)")
 ap.add_argument("-H", "--height", required=False,
@@ -38,6 +42,15 @@ ap.add_argument("-f", "--fps", required=False, default=False, action="store_true
 ap.add_argument("-b", "--brightness", required=False,
 	help = "brightness in 0-65535 range (default = 256)")
 args = vars(ap.parse_args())
+
+if not args.get("sensor",False):
+  sensor = 'ar0144'
+else:
+  sensor = args["sensor"]
+if not args.get("mode",False):
+  mode = 'dual'
+else:
+  mode = args["mode"]
 
 if not args.get("width",False):
   width = 640
@@ -61,11 +74,6 @@ else:
   brightness = int(args["brightness"])
 print('[INFO] brightness = ',brightness)
 
-# Initialize the capture pipeline
-print("[INFO] Initializing the capture pipeline ...")
-dualcam = DualCam('ar0144_dual',width,height)
-dualcam.set_brightness(brightness)  
-
 # init the real-time FPS display
 rt_fps_count = 0;
 rt_fps_time = cv2.getTickCount()
@@ -75,29 +83,40 @@ rt_fps_message = "FPS: {0:.2f}".format(rt_fps)
 rt_fps_x = 10
 rt_fps_y = height-10
 
+# Initialize the capture pipeline
+print("[INFO] Initializing the capture pipeline ...")
+dualcam = DualCam(sensor,mode,width,height)
+dualcam.set_brightness(brightness)  
+
 while(True):
 	# Update the real-time FPS counter
 	if rt_fps_count == 0:
 		rt_fps_time = cv2.getTickCount()
 
-	# Capture input
-	left,right = dualcam.capture_dual()
+	if mode == 'dual':
+		# Capture input
+		left,right = dualcam.capture_dual()
 
-	# Calculate anaglyph
-	# reference : https://learnopencv.com/making-a-low-cost-stereo-camera-using-opencv/
-	# - right : cyan (blue+green)
-	anaglyph = right
-	# - left : red
-	anaglyph[:,:,2] = left[:,:,2]
+		# Calculate anaglyph
+		# reference : https://learnopencv.com/making-a-low-cost-stereo-camera-using-opencv/
+		# - right : cyan (blue+green)
+		output = right
+		# - left : red
+		output[:,:,2] = left[:,:,2]
+   
+	else:
+		# mono passthrough
+		output = dualcam.capture()
+		
 
 	# Display status messages
 	status = ""
 	if fps_overlay == True and rt_fps_valid == True:
 		status = status + " " + rt_fps_message
-	cv2.putText(anaglyph, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
+	cv2.putText(output, status, (rt_fps_x,rt_fps_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv2.LINE_AA)
 
 	# Display output
-	cv2.imshow('avnet_dualcam_ar0144 - anaglyph',anaglyph)
+	cv2.imshow('avnet_dualcam_anaglyph',output)
 
 	key = cv2.waitKey(1) & 0xFF
 

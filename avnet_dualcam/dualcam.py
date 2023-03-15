@@ -50,6 +50,55 @@ def get_ap1302_i2c_desc(dev_media):
             ap1302_i2c_desc = 'ap1302.'+i2c_bus+'-003c'            
             return ap1302_i2c_desc
 
+def get_mipi_desc(dev_media):
+    proc = subprocess.run(['media-ctl','-d',dev_media,'-p'], capture_output=True, encoding='utf8')
+    for line in proc.stdout.splitlines():
+        if not 'entity' in line:
+            if 'mipi_csi2_rx_subsystem' in line:
+                #                 <- "b0000000.mipi_csi2_rx_subsystem":1 [ENABLED]
+                #                 -> "b0000000.mipi_csi2_rx_subsystem":0 [ENABLED]
+                base_address = re.search('\"(.+?).mipi_csi2_rx_subsystem', line).group(1)
+                mipi_desc = base_address+'.mipi_csi2_rx_subsystem'
+                return mipi_desc
+          
+def get_csc_desc(dev_media):
+    proc = subprocess.run(['media-ctl','-d',dev_media,'-p'], capture_output=True, encoding='utf8')
+    for line in proc.stdout.splitlines():
+        if not 'entity' in line:
+            if 'v_proc_ss' in line:
+                #                 <- "b0040000.v_proc_ss":1 [ENABLED]
+                #                 <- "b0020000.v_proc_ss":1 [ENABLED]
+                #                 -> "b0020000.v_proc_ss":0 [ENABLED]
+                #                 -> "b0040000.v_proc_ss":0 [ENABLED]
+                base_address = re.search('"(.+?).v_proc_ss', line).group(1)
+                driver_desc = 'v_proc_ss@'+base_address
+                proc2 = subprocess.run(['find','/sys/firmware/devicetree','-name',driver_desc],capture_output=True, encoding='utf8')
+                driver_path = proc2.stdout.splitlines()[0]
+                proc3 = subprocess.run(['cat',driver_path+'/compatible'],capture_output=True, encoding='utf8')
+                driver_compatible = proc3.stdout.splitlines()[0]
+                if 'xlnx,v-vpss-csc' in driver_compatible:
+                    csc_desc = base_address+'.v_proc_ss'            
+                    return csc_desc
+
+def get_scaler_desc(dev_media):
+    proc = subprocess.run(['media-ctl','-d',dev_media,'-p'], capture_output=True, encoding='utf8')
+    for line in proc.stdout.splitlines():
+        if not 'entity' in line:
+            if 'v_proc_ss' in line:
+                #                 <- "b0040000.v_proc_ss":1 [ENABLED]
+                #                 <- "b0020000.v_proc_ss":1 [ENABLED]
+                #                 -> "b0020000.v_proc_ss":0 [ENABLED]
+                #                 -> "b0040000.v_proc_ss":0 [ENABLED]
+                base_address = re.search('"(.+?).v_proc_ss', line).group(1)
+                driver_desc = 'v_proc_ss@'+base_address
+                proc2 = subprocess.run(['find','/sys/firmware/devicetree','-name',driver_desc],capture_output=True, encoding='utf8')
+                driver_path = proc2.stdout.splitlines()[0]
+                proc3 = subprocess.run(['cat',driver_path+'/compatible'],capture_output=True, encoding='utf8')
+                driver_compatible = proc3.stdout.splitlines()[0]
+                if 'xlnx,v-vpss-scaler' in driver_compatible:
+                    scaler_desc = base_address+'.v_proc_ss'            
+                    return scaler_desc                      
+                        
 def get_platform_name():
     proc = subprocess.run(['hostname'], capture_output=True, encoding='utf8')
     for line in proc.stdout.splitlines():
@@ -58,9 +107,11 @@ def get_platform_name():
 
 class DualCam():
 	  
-  def __init__(self, cap_config='ar0144_dual', cap_width=1280, cap_height=800):
+  def __init__(self, cap_sensor='ar0144', cap_mode='dual', cap_width=1280, cap_height=800):
   
-    self.cap_config = cap_config
+    #self.cap_config = cap_config
+    self.cap_sensor = cap_sensor
+    self.cap_mode = cap_mode
     self.cap_width = cap_width
     self.cap_height = cap_height
     
@@ -69,51 +120,86 @@ class DualCam():
     self.output_height = 0
     self.output_resolution = 'WxH'
 
-    if cap_config == 'ar0144_dual':
+    if cap_sensor == 'ar0144' and (cap_mode == 'dual'):
       self.input_resolution = '2560x800' # 2 x 1280x800
       self.output_width = self.cap_width*2
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
-    elif cap_config == 'ar0144_single':
+    elif cap_sensor == 'ar0144' and (cap_mode == 'primary' or cap_mode == 'secondary'):
       self.input_resolution = '1280x800'
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
-    elif cap_config == 'ar1335_single':
+    elif cap_sensor == 'ar1335' and (cap_mode == 'primary' or cap_mode == 'secondary'):
       self.input_resolution = '3840x2160'
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
-    elif cap_config == 'ar1335_dual':
+    elif cap_sensor == 'ar1335' and (cap_mode == 'dual'):
       self.input_resolution = '3840x1080' # 2 x 1920x1080
       self.output_width = self.cap_width*2
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
-    elif cap_config == 'ar0830_single':
+    elif cap_sensor == 'ar0830' and (cap_mode == 'primary' or cap_mode == 'secondary'):
       self.input_resolution = '3840x2160'
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
-    elif cap_config == 'ar0830_dual':
+    elif cap_sensor == 'ar0830' and (cap_mode == 'dual'):
       self.input_resolution = '3840x1080' # 2 x 1920x1080
       self.output_width = self.cap_width*2
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
     else:
-      print("[DualCam] Invalid cap_config = ",cap_config," !  (must be ar0144_dual|ar0144_single|ar1335_single|ar1335_dual|ar0830_single|ar0830_dual)")
+      print("[DualCam] Invalid cap_sensor|cap_mode = ",cap_sensor,cap_mode," !  (must be {ar0144|ar1335|ar0830}|{primary|secondary|dual})")
       return None
 
     print("\n\r[DualCam] Looking for devices corresponding to AP1302")
     dev_video = get_video_dev_by_name("vcap_CAPTURE_PIPELINE_v_proc_ss")
     dev_media = get_media_dev_by_name("vcap_CAPTURE_PIPELINE_v_proc_ss")
-    ap1302_i2c_desc = get_ap1302_i2c_desc(dev_media)
-    print(dev_video)
-    print(dev_media)
-    print(ap1302_i2c_desc)
+    #ap1302_i2c_desc = get_ap1302_i2c_desc(dev_media)
+    print('\tdev_video = ',dev_video)
+    print('\tdev_media = ',dev_media)
+    #print(ap1302_i2c_desc)
     self.dev_video = dev_video
     self.dev_media = dev_media
-    self.ap1302_i2c_desc = ap1302_i2c_desc
+    #self.ap1302_i2c_desc = ap1302_i2c_desc
 
+    proc1 = subprocess.run(['find','/sys/firmware/devicetree','-name','sensor,model'],capture_output=True, encoding='utf8')
+    sensor_path = proc1.stdout.splitlines()[0]
+    proc2 = subprocess.run(['cat',sensor_path],capture_output=True, encoding='utf8')
+    sensor_type = proc2.stdout.splitlines()[0]
+    # hack to get rid of embedded null byte
+    if 'ar0144' in sensor_type:
+        sensor_type = 'ar0144'
+    if 'ar1335' in sensor_type:
+        sensor_type = 'ar1335'
+    if 'ar0830' in sensor_type:
+        sensor_type = 'ar0830'
+    proc3 = subprocess.run(['ls','/sys/bus/i2c/drivers/ap1302'],capture_output=True, encoding='utf8')
+    ap1302_i2c = proc3.stdout.splitlines()[0]
+    ap1302_dev = "ap1302."+ap1302_i2c
+    ap1302_sensor = ap1302_i2c+"."+sensor_type
+    #print('\tsensor_path = ',sensor_path)
+    print('\tsensor_type = ',sensor_type)
+    print('\tap1302_i2c = ',ap1302_i2c)
+    print('\tap1302_dev = ',ap1302_dev)
+    print('\tap1302_sensor = ',ap1302_sensor)
+    self.ap1302_i2c = ap1302_i2c
+    self.ap1302_dev = ap1302_dev
+    self.ap1302_sensor = ap1302_sensor
+
+    print("\n\r[DualCam] Looking for base address for MIPI capture pipeline")
+    mipi_desc = get_mipi_desc(dev_media)
+    csc_desc = get_csc_desc(dev_media)
+    scaler_desc = get_scaler_desc(dev_media)
+    print('\tmipi_desc = ',mipi_desc)
+    print('\tcsc_desc = ',csc_desc)
+    print('\tscaler_desc = ',scaler_desc)
+    self.mipi_desc = mipi_desc
+    self.csc_desc = csc_desc
+    self.scaler_desc = scaler_desc
+            
     self.platform_name = get_platform_name()
     print("\n\r[DualCam] hostname = ",self.platform_name) 
     if self.platform_name == 'zub1cg':
@@ -122,32 +208,58 @@ class DualCam():
     else:
       # 96Boards dualcam : sensors places right-left on board
       print("\n\r[DualCam] Detected 96Boards dualcam (sensors placed right-left on board)")
+      
+    if self.cap_mode == 'primary':
+        print("\n\r[DualCam] Initializing AP1302 for primary sensor")
+        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
+        print(cmd)
+        os.system(cmd)
+        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[0]'"
+        print(cmd)
+        os.system(cmd)
+    elif self.cap_mode == 'secondary':
+        print("\n\r[DualCam] Initializing AP1302 for secondary sensor")
+        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[0]'"
+        print(cmd)
+        os.system(cmd)
+        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
+        print(cmd)
+        os.system(cmd)
+    elif self.cap_mode == 'dual':
+        print("\n\r[DualCam] Initializing AP1302 for dual sensors")
+        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
+        print(cmd)
+        os.system(cmd)
+        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
+        print(cmd)
+        os.system(cmd)
+    else:
+        print("\n\r[DualCam] Unsupported mode ",self.cap_mode)
 
-    print("\n\r[DualCam] Initializing capture pipeline for ",self.cap_config,self.cap_width,self.cap_height)
+    print("\n\r[DualCam] Initializing capture pipeline for ",self.cap_sensor,self.cap_mode,self.cap_width,self.cap_height)
             
-    #cmd = "media-ctl -d "+dev_media+" -V \"'ap1302.0-003c':2 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
-    cmd = "media-ctl -d "+dev_media+" -V \"'"+ap1302_i2c_desc+"':2 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+ap1302_dev+"':2 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
     print(cmd)
     os.system(cmd)
 
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0000000.mipi_csi2_rx_subsystem':0 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+mipi_desc+"':0 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
     print(cmd)
     os.system(cmd)
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0000000.mipi_csi2_rx_subsystem':1 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
-    print(cmd)
-    os.system(cmd)
-
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0010000.v_proc_ss':0 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
-    print(cmd)
-    os.system(cmd)
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0010000.v_proc_ss':1 [fmt:RBG24/"+self.input_resolution+" field:none]\""
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+mipi_desc+"':1 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
     print(cmd)
     os.system(cmd)
 
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0040000.v_proc_ss':0 [fmt:RBG24/"+self.input_resolution+" field:none]\""
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+csc_desc+"':0 [fmt:UYVY8_1X16/"+self.input_resolution+" field:none]\""
     print(cmd)
     os.system(cmd)
-    cmd = "media-ctl -d "+dev_media+" -V \"'b0040000.v_proc_ss':1 [fmt:RBG24/"+self.output_resolution+" field:none]\""
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+csc_desc+"':1 [fmt:RBG24/"+self.input_resolution+" field:none]\""
+    print(cmd)
+    os.system(cmd)
+
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+scaler_desc+"':0 [fmt:RBG24/"+self.input_resolution+" field:none]\""
+    print(cmd)
+    os.system(cmd)
+    cmd = "media-ctl -d "+dev_media+" -V \"'"+scaler_desc+"':1 [fmt:RBG24/"+self.output_resolution+" field:none]\""
     print(cmd)
     os.system(cmd)
 
@@ -155,20 +267,20 @@ class DualCam():
     #print(cmd)
     #os.system(cmd)
 
-    if cap_config == 'ar0144_dual' or cap_config == 'ar0144_single':
+    if cap_sensor == 'ar0144':
        print("\n\r[DualCam] Disabling Auto White Balance")
        cmd = "v4l2-ctl --set-ctrl white_balance_auto_preset=0 -d "+dev_video
        print(cmd)
        os.system(cmd)
 
-    #if cap_config == 'ar0144_dual':
+    #if cap_sensor == 'ar0144' and cap_mode == 'dual':
     #  print("\n\r[DualCam] Configuring AP1302 for left-right side-by-side configuration")
     #  cmd = "v4l2-ctl --set-ctrl 3d_path=1 -d "+dev_video
     #  print(cmd)
     #  os.system(cmd)
     # causes capture to hange ... cannot use :(
 
-    if cap_config == 'ar1335_single':
+    if cap_sensor == 'ar1335':
       print("\n\r[DualCam] Configuring AP1302 for no horizontal/vertical flip")
 
       cmd = "v4l2-ctl --set-ctrl vflip=0 -d "+dev_video

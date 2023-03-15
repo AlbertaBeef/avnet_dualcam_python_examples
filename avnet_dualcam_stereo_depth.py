@@ -1,5 +1,5 @@
 '''
-Copyright 2021 Avnet Inc.
+Copyright 2023 Avnet Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-# USAGE
-# python stereo_calibrate.py -s 2.15 -ms 1.65 -ih
-
 import numpy as np
 import cv2
 import argparse
@@ -27,6 +24,9 @@ from calibration_store import load_stereo_coefficients
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 from avnet_dualcam.dualcam import DualCam
+
+# USAGE
+# python avnet_dualcam_depth.py [--sensor ar0144] [--width 640] --height 480] --calibration_file stereo_data/calib/dualcam_stereo.yaml 
 
 def depth_map(imgL, imgR):
     """ Depth map calculation. Works with SGBM and WLS. Need rectified images, returns depth map ( left to right disparity ) """
@@ -72,17 +72,23 @@ def depth_map(imgL, imgR):
 if __name__ == '__main__':
     # Args handling -> check help parameters to understand
     parser = argparse.ArgumentParser(description='Camera calibration')
-    parser.add_argument('--calibration_file', type=str, required=True, help='Path to the stereo calibration file')
-    parser.add_argument('--width', type=int, required=True, help='Input resolution width')
-    parser.add_argument('--height', type=int, required=True, help='Input resolution height')
+    parser.add_argument("-S", "--sensor", required=False, help = "image sensor (ar0144|ar1335|ar0830, default = ar0144)")
+    parser.add_argument("-C", '--calibration_file', type=str, required=True, help='Path to the stereo calibration file')
+    parser.add_argument("-W", '--width', type=int, required=True, help='Input resolution width')
+    parser.add_argument("-H", '--height', type=int, required=True, help='Input resolution height')
 
     args = parser.parse_args()
     print(args)
-        
+
+    if args.sensor == None:
+        sensor = 'ar0144'
+    else:
+        sensor = args.sensor
+          
     width = args.width
     height = args.height   
 
-    dualcam = DualCam('ar0144_dual',width,height)
+    dualcam = DualCam(sensor,'dual',width,height)
 
     K1, D1, K2, D2, R, T, E, F, R1, R2, P1, P2, Q = load_stereo_coefficients(args.calibration_file)  # Get cams params
 

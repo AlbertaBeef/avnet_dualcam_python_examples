@@ -1,21 +1,16 @@
 # avnet_dualcam_python_examples
 Python-based OpenCV examples for the AP1302-based Dual Camera modules
 
-# Instructions for use with Vitis 2021.2 / Vitis-AI 2.0
+# Instructions for use with Vitis 2022.2
 
 To clone this repo, run:
 ```
-git clone -b 2021.2 https://github.com/AlbertaBeef/avnet_dualcam_python_examples.git
+git clone -b 2022.2 https://github.com/AlbertaBeef/avnet_dualcam_python_examples.git
 ```
 
 # Tools Version
 
-The supported Xilinx tools release is 2021.2.
-
-Install y2k22_patch for Vivado HLS and Vitis HLS tools to avoid 'Y2K22 Overflow Issue'.
-Refer to the following Answer Record for obtaining the patch.
-
-https://support.xilinx.com/s/article/76960?language=en_US
+The supported Xilinx tools release is 2022.2.
 
 # Supported Hardware
 
@@ -35,37 +30,32 @@ The following AP1302-based dualcam modules, and their respective carriers, are s
    - /dev/video# (detected by searching for "vcap_CAPTURE_PIPELINE_v_proc_ss" string)
    - /dev/media# (detected by searching for "vcap_CAPTURE_PIPELINE_v_proc_ss" string)
    - ap1302.#-003c
+   - 
 
-2. vitis_ai_vart
-
-   This folder contains a python wrapper for the Vitis-AI 2.0 VART API.
-
-   The facedetect.py provides a convenience wrapper for the face detection model (densebox_640_360).
-   The facelandmark.py provides a convenience wrapper for the face landmark model (face_landmark)
-
-3. depthai_helpers
+2. depthai_helpers
 
    This folder contains python scripts for stereo calibration.
    These files are modified versions taken from the DepthAI OAK camera project.
 
-4. stereo_data
+3. stereo_data
 
    This folder contains sample captured stereo images (left, right) and stereo calibration data.
 
 
 # Documentation
 
-1. To launch a simple passthrough
+1. To launch a dual ar0144 passthrough
 
-   $ python3 avnet_dualcam_passthrough.py
+   $ python3 avnet_dualcam_passthrough.py --sensor ar0144 --mode dual
 
-2. To launch a dual passthrough
+2. To launch a single ar0144 passthrough
 
-   $ python3 avnet_dualcam_dual_passthrough.py
+   $ python3 avnet_dualcam_dual_passthrough.py --sensor ar0144 --mode primary
+   $ python3 avnet_dualcam_dual_passthrough.py --sensor ar0144 --mode secondary
 
 3. To launch anaglyph example
 
-   $ python3 avnet_dualcam_anaglyph.py
+   $ python3 avnet_dualcam_anaglyph.py --sensor ar0144 --mode dual
 
 4. To perform stereo calibration, then software-based depth estimation
 

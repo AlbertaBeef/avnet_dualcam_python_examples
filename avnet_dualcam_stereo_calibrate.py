@@ -1,5 +1,5 @@
 '''
-Copyright 2021 Avnet Inc.
+Copyright 2023 Avnet Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,9 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 '''
-
-# USAGE
-# python stereo_calibrate.py -s 2.15 -ms 1.65 -ih
 
 import argparse
 import json
@@ -36,6 +33,10 @@ from calibration_store import save_stereo_coefficients
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('./'))
 from avnet_dualcam.dualcam import DualCam
+
+# USAGE
+# python3 avnet_dualcam_stereo_calibrate.py [--sensor ar0144] -s 2.15 -ms 1.65 -ih
+
 
 
 font = cv2.FONT_HERSHEY_SIMPLEX
@@ -82,6 +83,7 @@ def parse_args():
     '''
     parser = ArgumentParser(
         epilog=epilog_text, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("-S", "--sensor", required=False, help = "image sensor (ar0144|ar1335|ar0830, default = ar0144)")
     parser.add_argument("-c", "--count", default=1, type=int, required=False,
                         help="Number of images per polygon to capture. Default: 1.")
     parser.add_argument("-s", "--squareSizeCm", type=float, required=True,
@@ -143,10 +145,15 @@ class Main:
         if debug:
             print("Using Arguments=", self.args)
 
+        if self.args.sensor == None:
+            self.sensor = 'ar0144'
+        else:
+            self.sensor = self.args.sensor            
+		
         self.dualcam_width = 1280 
         self.dualcam_height = 800   
 
-        self.dualcam = DualCam('ar0144_dual',self.dualcam_width,self.dualcam_height)
+        self.dualcam = DualCam(self.sensor,'dual',self.dualcam_width,self.dualcam_height)
 
 
     def is_markers_found(self, frame):
