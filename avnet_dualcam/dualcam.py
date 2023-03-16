@@ -1,5 +1,5 @@
 '''
-Copyright 2022 Avnet Inc.
+Copyright 2023 Avnet Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 '''
 
-# Based on DualCam 2021.2 Designs
-#    http://avnet.me/u96v2-dualcam-2021.2
-#    http://avnet.me/zub1cg-dualcam-2021.2
+# Based on DualCam 2022.2 Designs
+#    http://avnet.me/u96v2-dualcam-2022.2
+#    http://avnet.me/zub1cg-dualcam-2022.2
     
 import numpy as np
 import cv2
@@ -114,6 +114,9 @@ class DualCam():
     self.cap_mode = cap_mode
     self.cap_width = cap_width
     self.cap_height = cap_height
+
+    self.platform_name = get_platform_name()
+    print("\n\r[DualCam] hostname = ",self.platform_name) 
     
     self.input_resolution = 'WxH'
     self.output_width = 0
@@ -131,7 +134,10 @@ class DualCam():
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
     elif cap_sensor == 'ar1335' and (cap_mode == 'primary' or cap_mode == 'secondary'):
-      self.input_resolution = '3840x2160'
+      if self.platform_name == 'zub1cg':
+        self.input_resolution = '1920x1080'
+      else:
+        self.input_resolution = '3840x2160'
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
@@ -141,7 +147,10 @@ class DualCam():
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
     elif cap_sensor == 'ar0830' and (cap_mode == 'primary' or cap_mode == 'secondary'):
-      self.input_resolution = '3840x2160'
+      if self.platform_name == 'zub1cg':
+        self.input_resolution = '1920x1080'
+      else:
+        self.input_resolution = '3840x2160'
       self.output_width = self.cap_width
       self.output_height = self.cap_height
       self.output_resolution = str(self.output_width)+'x'+str(self.output_height)
@@ -200,11 +209,9 @@ class DualCam():
     self.csc_desc = csc_desc
     self.scaler_desc = scaler_desc
             
-    self.platform_name = get_platform_name()
-    print("\n\r[DualCam] hostname = ",self.platform_name) 
     if self.platform_name == 'zub1cg':
-      # SYZYGY dualcam : sensors placed left-right on board
-      print("\n\r[DualCam] Detected SYZYGY dualcam (sensors placed left-right on board)")
+      # HSIO dualcam : sensors placed left-right on board
+      print("\n\r[DualCam] Detected HSIO dualcam (sensors placed left-right on board)")
     else:
       # 96Boards dualcam : sensors places right-left on board
       print("\n\r[DualCam] Detected 96Boards dualcam (sensors placed right-left on board)")
@@ -340,7 +347,7 @@ class DualCam():
     _, frame = self.cap.retrieve()
     
     if self.platform_name == 'zub1cg':
-      # SYZYGY dualcam : sensors placed left-right on board
+      # HSIO dualcam : sensors placed left-right on board
       left  = frame[:,1:(self.cap_width)+1,:]
       right = frame[:,(self.cap_width):(self.cap_width*2)+1,:]
     else:
