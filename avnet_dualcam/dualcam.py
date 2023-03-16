@@ -211,26 +211,26 @@ class DualCam():
       
     if self.cap_mode == 'primary':
         print("\n\r[DualCam] Initializing AP1302 for primary sensor")
-        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
         print(cmd)
         os.system(cmd)
-        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[0]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[0]'"
         print(cmd)
         os.system(cmd)
     elif self.cap_mode == 'secondary':
         print("\n\r[DualCam] Initializing AP1302 for secondary sensor")
-        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[0]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[0]'"
         print(cmd)
         os.system(cmd)
-        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
         print(cmd)
         os.system(cmd)
     elif self.cap_mode == 'dual':
         print("\n\r[DualCam] Initializing AP1302 for dual sensors")
-        cmd = "media-ctl -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".0\":0 -> \""+ap1302_dev+"\":0[1]'"
         print(cmd)
         os.system(cmd)
-        cmd = "media-ctl -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
+        cmd = "media-ctl -d "+dev_media+" -l '\""+ap1302_sensor+".1\":0 -> \""+ap1302_dev+"\":1[1]'"
         print(cmd)
         os.system(cmd)
     else:
